@@ -8,7 +8,7 @@ public class Post
     public PostType PostType { get; set; }
     public Club Club { get; set; }
     public DateTime Date { get; set; }
-    public Image Image { get; set; }
-    public User Author { get; set; }
+    public string Image { get; set; }
+    public AppUser Author { get; set; }
     public bool enabled { get; set; }
 }
