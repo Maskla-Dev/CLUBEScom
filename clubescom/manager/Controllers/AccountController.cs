@@ -55,8 +55,7 @@ namespace clubescom.manager.Controllers
 
             if (result.Succeeded)
             {
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return Ok(new { ProfileImagePath = user.ProfileImagePath });
+                return Ok(new { message = "User created" });
             }
 
             return BadRequest(result.Errors);

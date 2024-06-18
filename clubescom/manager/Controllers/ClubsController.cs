@@ -21,16 +21,17 @@ public class ClubsController : ControllerBase
 
     // Get: api/Clubs
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Club>>> GetClubs()
+    public async Task<ActionResult<IEnumerable<ClubDto>>> GetClubs()
     {
         // Retreive all clubs from database
         var clubs = await _context.Clubs.ToListAsync();
-        return Ok(clubs);
+        var clubDtos = mapClubs(clubs);
+        return Ok(clubDtos);
     }
 
     // Get: api/Clubs/{name}
     [HttpGet("{name}")]
-    public async Task<ActionResult<Club>> GetClub(string name)
+    public async Task<ActionResult<ClubDto>> GetClub(string name)
     {
         // Retreive club from database
         var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == name);
@@ -39,7 +40,8 @@ public class ClubsController : ControllerBase
             return NotFound();
         }
 
-        return Ok(club);
+        var clubDto = mapClubs(new List<Club> { club }).First();
+        return Ok(clubDto);
     }
 
     // POST: api/Clubs
@@ -207,5 +209,10 @@ public class ClubsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private IEnumerable<ClubDto> mapClubs(IEnumerable<Club> clubs)
+    {
+        return clubs.Select(club => new ClubDto(club)).ToList();
     }
 }

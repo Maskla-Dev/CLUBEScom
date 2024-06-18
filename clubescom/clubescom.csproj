@@ -20,6 +20,7 @@
 
     <ItemGroup>
       <Folder Include="wwwroot\clubs\" />
+      <Folder Include="wwwroot\posts\" />
       <Folder Include="wwwroot\users\" />
     </ItemGroup>
 

@@ -11,4 +11,5 @@ public class Post
     public string Image { get; set; }
     public AppUser Author { get; set; }
     public bool enabled { get; set; }
+    public string Preview { get; set; }
 }
