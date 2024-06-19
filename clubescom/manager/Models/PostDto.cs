@@ -12,30 +12,16 @@ public class PostDto
     public AppUserDto Author { get; set; }
     public string Preview { get; set; }
 
-    public PostDto(Post post)
+    public PostDto(Post post, IConfiguration _configuration)
     {
         ID = post.ID;
         Title = post.Title;
         Content = post.Content;
         PostType = post.PostType;
-        Club = new ClubDto(post.Club);
+        Club = new ClubDto(post.Club, _configuration);
         Date = post.Date;
         Image = post.Image;
-        Author = new AppUserDto(post.Author);
+        Author = new AppUserDto(post.Author, _configuration);
         Preview = post.Preview;
-    }
-}
-
-public class AppUserDto
-{
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public string PhoneNumber { get; set; }
-
-    public AppUserDto(AppUser user)
-    {
-        Name = user.Name;
-        Email = user.Email;
-        PhoneNumber = user.PhoneNumber;
     }
 }

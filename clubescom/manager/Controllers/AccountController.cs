@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using clubescom.manager.models;
 using System.IO;
 using System.Threading.Tasks;
+using clubescom.manager.Controllers.Utils;
+using Microsoft.AspNetCore.Authorization;
 
 namespace clubescom.manager.Controllers
 {
@@ -13,42 +15,28 @@ namespace clubescom.manager.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
+        private readonly IConfiguration _configuration;
 
-        public AccountController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager)
+        public AccountController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
+        [Authorize]
         public async Task<ActionResult> Register(string username, string password, string email, string phoneNumber,
             string name, IFormFile profileImage)
         {
             var user = new AppUser { UserName = username, Email = email, PhoneNumber = phoneNumber, Name = name };
 
-            if (profileImage != null)
+            if (ImageManager.IsValidFile(profileImage))
             {
-                var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "users", "Images");
-                if (!Directory.Exists(uploads))
-                {
-                    Directory.CreateDirectory(uploads);
-                }
-
-                // Check if the file is an image
-                var contentType = profileImage.ContentType;
-                var isImage = contentType.StartsWith("image/");
-                if (!isImage)
-                {
-                    return BadRequest("Invalid file type. Only image files are allowed.");
-                }
-
-                var filePath = Path.Combine(uploads, profileImage.FileName);
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await profileImage.CopyToAsync(fileStream);
-                }
-
-                user.ProfileImagePath = filePath;
+                user.ProfileImagePath = await ImageManager.New(profileImage,
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+                        _configuration.GetValue<string>("UsersPath")));
             }
 
             var result = await _userManager.CreateAsync(user, password);
@@ -75,7 +63,8 @@ namespace clubescom.manager.Controllers
 
             if (result.Succeeded)
             {
-                return Ok(new { ProfileImagePath = user.ProfileImagePath });
+                var userDto = new AppUserDto(user, _configuration);
+                return Ok(userDto);
             }
 
             return Unauthorized();

@@ -1,29 +1,29 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using clubescom.manager;
-using clubescom.manager.models;
+﻿using clubescom.manager.models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using clubescom.manager.Controllers.Utils;
 
-namespace clubescom.controllers;
+namespace clubescom.manager.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class ClubsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public ClubsController(AppDbContext context)
+    public ClubsController(AppDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     // Get: api/Clubs
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ClubDto>>> GetClubs()
     {
-        // Retreive all clubs from database
+        // Retrieve all clubs from database
         var clubs = await _context.Clubs.ToListAsync();
         var clubDtos = mapClubs(clubs);
         return Ok(clubDtos);
@@ -33,7 +33,7 @@ public class ClubsController : ControllerBase
     [HttpGet("{name}")]
     public async Task<ActionResult<ClubDto>> GetClub(string name)
     {
-        // Retreive club from database
+        // Retrieve club from database
         var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == name);
         if (club == null)
         {
@@ -57,53 +57,21 @@ public class ClubsController : ControllerBase
             OptionalEmail = optionalEmail
         };
 
-        if (logo != null)
+        if (!ImageManager.IsValidFile(logo))
         {
-            var logoContentType = logo.ContentType;
-            var isLogoImage = logoContentType.StartsWith("image/");
-            if (!isLogoImage)
-            {
-                return BadRequest("Invalid file type for logo. Only image files are allowed.");
-            }
-
-            var logoUploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "clubs", "logos");
-            if (!Directory.Exists(logoUploads))
-            {
-                Directory.CreateDirectory(logoUploads);
-            }
-
-            var logoFilePath = Path.Combine(logoUploads, logo.FileName);
-            using (var fileStream = new FileStream(logoFilePath, FileMode.Create))
-            {
-                await logo.CopyToAsync(fileStream);
-            }
-
-            club.Logo = logoFilePath;
+            return BadRequest("Invalid file type for logo. Only image files are allowed.");
         }
 
-        if (banner != null)
+        club.Logo = await ImageManager.New(logo,
+            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", _configuration.GetValue<string>("LogosPath")));
+
+        if (!ImageManager.IsValidFile(banner))
         {
-            var bannerContentType = banner.ContentType;
-            var isBannerImage = bannerContentType.StartsWith("image/");
-            if (!isBannerImage)
-            {
-                return BadRequest("Invalid file type for banner. Only image files are allowed.");
-            }
-
-            var bannerUploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "clubs", "banners");
-            if (!Directory.Exists(bannerUploads))
-            {
-                Directory.CreateDirectory(bannerUploads);
-            }
-
-            var bannerFilePath = Path.Combine(bannerUploads, banner.FileName);
-            using (var fileStream = new FileStream(bannerFilePath, FileMode.Create))
-            {
-                await banner.CopyToAsync(fileStream);
-            }
-
-            club.Banner = bannerFilePath;
+            return BadRequest("Invalid file type for banner. Only image files are allowed.");
         }
+
+        club.Banner = await ImageManager.New(banner,
+            Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", _configuration.GetValue<string>("BannersPath")));
 
         _context.Clubs.Add(club);
         await _context.SaveChangesAsync();
@@ -115,7 +83,7 @@ public class ClubsController : ControllerBase
     [HttpPut("{name}")]
     [Authorize(Roles = "Admin, President")]
     public async Task<IActionResult> PutClub(string name, string optionalPhoneNumber, string optionalEmail,
-        IFormFile logo, IFormFile banner)
+        IFormFile? logo, IFormFile? banner)
     {
         var club = await _context.Clubs.FirstOrDefaultAsync(c => c.Name == name);
         if (club == null)
@@ -128,64 +96,25 @@ public class ClubsController : ControllerBase
 
         if (logo != null)
         {
-            var logoContentType = logo.ContentType;
-            var isLogoImage = logoContentType.StartsWith("image/");
-            if (!isLogoImage)
+            if (!ImageManager.IsValidFile(logo))
             {
                 return BadRequest("Invalid file type for logo. Only image files are allowed.");
             }
 
-            // Delete the existing logo file
-            if (System.IO.File.Exists(club.Logo))
-            {
-                System.IO.File.Delete(club.Logo);
-            }
-
-            // Save the new logo file
-            var logoUploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "clubs", "logos");
-            if (!Directory.Exists(logoUploads))
-            {
-                Directory.CreateDirectory(logoUploads);
-            }
-
-            var logoFilePath = Path.Combine(logoUploads, logo.FileName);
-            using (var fileStream = new FileStream(logoFilePath, FileMode.Create))
-            {
-                await logo.CopyToAsync(fileStream);
-            }
-
-            club.Logo = logoFilePath;
+            club.Logo = await ImageManager.NewOrReplace(logo,
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", _configuration.GetValue<string>("LogosPath")));
         }
 
         if (banner != null)
         {
-            var bannerContentType = banner.ContentType;
-            var isBannerImage = bannerContentType.StartsWith("image/");
-            if (!isBannerImage)
+            if (!ImageManager.IsValidFile(banner))
             {
-                return BadRequest("Invalid file type for banner. Only image files are allowed.");
+                return BadRequest("Invalid file type for logo. Only image files are allowed.");
             }
 
-            // Delete the existing banner file
-            if (System.IO.File.Exists(club.Banner))
-            {
-                System.IO.File.Delete(club.Banner);
-            }
-
-            // Save the new banner file
-            var bannerUploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "clubs", "banners");
-            if (!Directory.Exists(bannerUploads))
-            {
-                Directory.CreateDirectory(bannerUploads);
-            }
-
-            var bannerFilePath = Path.Combine(bannerUploads, banner.FileName);
-            using (var fileStream = new FileStream(bannerFilePath, FileMode.Create))
-            {
-                await banner.CopyToAsync(fileStream);
-            }
-
-            club.Banner = bannerFilePath;
+            club.Banner = await ImageManager.NewOrReplace(banner,
+                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+                    _configuration.GetValue<string>("BannersPath")));
         }
 
         _context.Entry(club).State = EntityState.Modified;
@@ -205,6 +134,11 @@ public class ClubsController : ControllerBase
             return NotFound();
         }
 
+        ImageManager.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+            _configuration.GetValue<string>("BannersPath"), club.Banner));
+        ImageManager.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+            _configuration.GetValue<string>("LogosPath"), club.Logo));
+
         _context.Clubs.Remove(club);
         await _context.SaveChangesAsync();
 
@@ -213,6 +147,6 @@ public class ClubsController : ControllerBase
 
     private IEnumerable<ClubDto> mapClubs(IEnumerable<Club> clubs)
     {
-        return clubs.Select(club => new ClubDto(club)).ToList();
+        return clubs.Select(club => new ClubDto(club, _configuration)).ToList();
     }
 }

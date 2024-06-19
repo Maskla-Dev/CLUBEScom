@@ -1,4 +1,6 @@
-﻿namespace clubescom.manager.models;
+﻿using clubescom.manager.Controllers.Utils;
+
+namespace clubescom.manager.models;
 
 public class ClubDto
 {
@@ -11,8 +13,8 @@ public class ClubDto
     public string Logo { get; set; }
     public string Name { get; set; }
     public string Banner { get; set; }
-    
-    public ClubDto(Club club)
+
+    public ClubDto(Club club, IConfiguration _configuration)
     {
         ID = club.ID;
         President = club.President.Name;
@@ -20,8 +22,10 @@ public class ClubDto
         PresidentPhoneNumber = club.President.PhoneNumber;
         OptionalPhoneNumber = club.OptionalPhoneNumber;
         OptionalEmail = club.OptionalEmail;
-        Logo = club.Logo;
+        Logo = Path.Combine(_configuration.GetValue<string>("URIBasePath"),
+            _configuration.GetValue<string>("LogosPath"), club.Logo);
         Name = club.Name;
-        Banner = club.Banner;
+        Banner = Path.Combine(_configuration.GetValue<string>("URIBasePath"),
+            _configuration.GetValue<string>("BannersPath"), club.Banner);
     }
 }

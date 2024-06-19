@@ -1,4 +1,12 @@
 ﻿{
+  "environmentVariables": {
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "URIBasePath": "http://localhost:8080",
+    "LogosPath": "clubs/logos",
+    "BannersPath": "clubs/banners",
+    "UsersPath": "users/avatars",
+    "PreviewsPath": "posts/previews"
+  },
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "iisSettings": {
     "windowsAuthentication": false,
@@ -14,7 +22,7 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "applicationUrl": "http://localhost:5274",
+      "applicationUrl": "http://localhost:8080",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

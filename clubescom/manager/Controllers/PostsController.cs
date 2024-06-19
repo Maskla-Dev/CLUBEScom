@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using clubescom.manager.Controllers.Utils;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using clubescom.manager.models;
 using Microsoft.AspNetCore.Authorization;
@@ -7,27 +8,29 @@ namespace clubescom.manager.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class PostController : ControllerBase
+    public class PostsController : ControllerBase
     {
-        private readonly AppDbContext _context; // Replace 'YourDbContext' with your actual DbContext class
+        private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public PostController(AppDbContext context)
+        public PostsController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
-        // GET: api/Post
+        // GET: api/Posts
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Post>>> GetPosts()
         {
             var posts = await _context.Posts.Where(p => p.enabled).ToListAsync();
 
-            var postDtos = posts.Select(post => new PostDto(post)).ToList();
+            var postDtos = posts.Select(post => new PostDto(post, _configuration)).ToList();
 
             return Ok(postDtos);
         }
 
-        // GET: api/Post/{id}
+        // GET: api/Posts/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<PostDto>> GetPost(Guid id)
         {
@@ -38,10 +41,10 @@ namespace clubescom.manager.Controllers
                 return NotFound();
             }
 
-            return Ok(new PostDto(post));
+            return Ok(new PostDto(post, _configuration));
         }
 
-        // GET: api/Post?clubId={clubId}
+        // GET: api/Posts?clubId={clubId}
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetPosts([FromQuery] Guid clubId)
         {
@@ -52,46 +55,28 @@ namespace clubescom.manager.Controllers
                 return NotFound();
             }
 
-            var postDtos = posts.Select(post => new PostDto(post)).ToList();
+            var postDtos = posts.Select(post => new PostDto(post, _configuration)).ToList();
 
             return Ok(postDtos);
         }
 
-        // POST: api/Post
+        // POST: api/Posts
         [HttpPost]
         [Authorize]
         public async Task<ActionResult<Post>> CreatePost(Post post, IFormFile preview)
         {
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != post.Club.ID)
+            if (authenticatedUser != null && authenticatedUser.ID != post.Club.President.ID)
             {
                 return Forbid();
             }
 
-            if (preview != null)
+            if (ImageManager.IsValidFile(preview))
             {
-                var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "posts", "Images");
-                if (!Directory.Exists(uploads))
-                {
-                    Directory.CreateDirectory(uploads);
-                }
-
-                // Check if the file is an image
-                var contentType = preview.ContentType;
-                var isImage = contentType.StartsWith("image/");
-                if (!isImage)
-                {
-                    return BadRequest("Invalid file type. Only image files are allowed.");
-                }
-
-                var filePath = Path.Combine(uploads, preview.FileName);
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await preview.CopyToAsync(fileStream);
-                }
-
-                post.Preview = filePath;
+                post.Preview = await ImageManager.New(preview,
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+                        _configuration.GetValue<string>("PreviewsPath")));
             }
             else
             {
@@ -111,7 +96,7 @@ namespace clubescom.manager.Controllers
         {
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != post.Club.ID)
+            if (authenticatedUser != null && authenticatedUser.ID != post.Club.President.ID)
             {
                 return Forbid();
             }
@@ -123,33 +108,14 @@ namespace clubescom.manager.Controllers
 
             if (preview != null)
             {
-                var previewContentType = preview.ContentType;
-                var isPreviewImage = previewContentType.StartsWith("image/");
-                if (!isPreviewImage)
+                if (!ImageManager.IsValidFile(preview))
                 {
                     return BadRequest("Invalid file type for logo. Only image files are allowed.");
                 }
 
-                // Delete the existing logo file
-                if (System.IO.File.Exists(post.Preview))
-                {
-                    System.IO.File.Delete(post.Preview);
-                }
-
-                // Save the new logo file
-                var previewUploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "posts", "logos");
-                if (!Directory.Exists(previewUploads))
-                {
-                    Directory.CreateDirectory(previewUploads);
-                }
-
-                var previewFilePath = Path.Combine(previewUploads, preview.FileName);
-                using (var fileStream = new FileStream(previewFilePath, FileMode.Create))
-                {
-                    await preview.CopyToAsync(fileStream);
-                }
-
-                post.Preview = previewFilePath;
+                post.Preview = await ImageManager.NewOrReplace(preview,
+                    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
+                        _configuration.GetValue<string>("PreviewsPath")));
             }
 
             _context.Entry(post).State = EntityState.Modified;
@@ -163,19 +129,22 @@ namespace clubescom.manager.Controllers
         [Authorize]
         public async Task<IActionResult> DeletePost(Guid id)
         {
+            var post = await _context.Posts.FindAsync(id);
+
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null)
+            if (authenticatedUser != null && authenticatedUser.ID != post.Club.President.ID)
             {
                 return Forbid();
             }
 
-            var post = await _context.Posts.FindAsync(id);
 
             if (post == null)
             {
                 return NotFound();
             }
+
+            ImageManager.Delete(post.Preview);
 
             _context.Posts.Remove(post);
             await _context.SaveChangesAsync();
