@@ -19,9 +19,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Migrations\" />
       <Folder Include="wwwroot\clubs\" />
       <Folder Include="wwwroot\posts\" />
-      <Folder Include="wwwroot\users\" />
     </ItemGroup>
 
 </Project>

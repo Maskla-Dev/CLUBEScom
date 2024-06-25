@@ -44,8 +44,8 @@ namespace clubescom.manager.Controllers
             return Ok(new PostDto(post, _configuration));
         }
 
-        // GET: api/Posts?clubId={clubId}
-        [HttpGet]
+        // GET: api/Posts/ByClub?clubId={clubId}
+        [HttpGet("ByClub/{clubId}")]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetPosts([FromQuery] Guid clubId)
         {
             var posts = await _context.Posts.Where(p => (p.Club.ID == clubId) && (p.enabled)).ToListAsync();
@@ -67,7 +67,7 @@ namespace clubescom.manager.Controllers
         {
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != post.Club.President.ID)
+            if (authenticatedUser != null && authenticatedUser.Id != post.Club.President.Id)
             {
                 return Forbid();
             }
@@ -96,7 +96,7 @@ namespace clubescom.manager.Controllers
         {
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != post.Club.President.ID)
+            if (authenticatedUser != null && authenticatedUser.Id != post.Club.President.Id)
             {
                 return Forbid();
             }
@@ -133,7 +133,7 @@ namespace clubescom.manager.Controllers
 
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != post.Club.President.ID)
+            if (authenticatedUser != null && authenticatedUser.Id != post.Club.President.Id)
             {
                 return Forbid();
             }

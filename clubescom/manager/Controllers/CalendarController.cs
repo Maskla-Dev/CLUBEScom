@@ -43,8 +43,8 @@ namespace clubescom.manager.Controllers
             return Ok(new CalendarDto(calendar, _configuration));
         }
 
-        // GET: api/Calendar?clubId={clubId}
-        [HttpGet]
+        // GET: api/Calendar/ByClub?clubId={clubId}
+        [HttpGet("ByClub/{clubId}")]
         public async Task<ActionResult<IEnumerable<CalendarDto>>> GetCalendars([FromQuery] Guid clubId)
         {
             var calendars = await _context.Calendars.Where(c => c.Club.ID == clubId).ToListAsync();
@@ -75,7 +75,7 @@ namespace clubescom.manager.Controllers
 
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != club.President.ID)
+            if (authenticatedUser != null && authenticatedUser.Id != club.President.Id)
             {
                 return Forbid();
             }
@@ -120,7 +120,7 @@ namespace clubescom.manager.Controllers
 
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != club.President.ID)
+            if (authenticatedUser != null && authenticatedUser.Id != club.President.Id)
             {
                 return Forbid();
             }
@@ -168,7 +168,7 @@ namespace clubescom.manager.Controllers
 
             var authenticatedUser = await _context.Users.FindAsync(User.Identity.Name);
 
-            if (authenticatedUser != null && authenticatedUser.ID != club.President.ID)
+            if (authenticatedUser != null && authenticatedUser.Id != club.President.Id)
             {
                 return Forbid();
             }
@@ -193,8 +193,8 @@ namespace clubescom.manager.Controllers
             return Ok(calendarTypes);
         }
 
-        // GET: api/Calendar?PostId={PostId}
-        [HttpGet]
+        // GET: api/Calendar/Links?PostId={PostId}
+        [HttpGet ("Links")]
         public async Task<ActionResult<IEnumerable<PostCalendarLinksDto>>> GetPostCalendarLinks([FromQuery] Guid PostId)
         {
             var postCalendarLinks = await _context.PostCalendarlinks.Where(pcl => pcl.Post.ID == PostId).ToListAsync();

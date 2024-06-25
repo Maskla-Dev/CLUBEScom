@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
-using System.Collections.Generic;
+﻿namespace clubescom.manager.models;
 
-namespace clubescom.manager.models;
-
-public class Role : IdentityRole<Guid>
+public class Role
 {
-    public ICollection<IdentityUserRole<Guid>> UserRoles { get; set; }
+    
+    public Guid ID { get; set; }
+    public string Name { get; set; }
 }
