@@ -10,6 +10,17 @@ builder.Services.AddDefaultIdentity<AppUser>().AddEntityFrameworkStores<AppDbCon
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add CORS policy
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DisableCors", builder =>
+    {
+        builder.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -19,12 +30,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("DisableCors");
 
 app.MapControllers();
 
