@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading.Tasks;
 using clubescom.manager.Controllers.Utils;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace clubescom.manager.Controllers
 {
@@ -15,11 +16,13 @@ namespace clubescom.manager.Controllers
     {
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
+        private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public AccountController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
+        public AccountController(AppDbContext context, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
             IConfiguration configuration)
         {
+            _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
@@ -27,19 +30,19 @@ namespace clubescom.manager.Controllers
 
         [HttpPost("register")]
         [Authorize]
-        public async Task<ActionResult> Register(string username, string password, string email, string phoneNumber,
-            string name, IFormFile profileImage)
+        public async Task<ActionResult> Register([FromBody] RegisterUser register)
         {
-            var user = new AppUser { UserName = username, Email = email, PhoneNumber = phoneNumber, Name = name };
+            var userRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User");
+            var user = new AppUser { UserName = register.username, Email = register.email, PhoneNumber = register.phoneNumber, Name = register.name, Roles = userRole};
 
-            if (ImageManager.IsValidFile(profileImage))
+            if (ImageManager.IsValidFile(register.profileImage))
             {
-                user.ProfileImagePath = await ImageManager.New(profileImage,
+                user.ProfileImagePath = await ImageManager.New(register.profileImage,
                     Path.Combine(Directory.GetCurrentDirectory(), "wwwroot",
                         _configuration.GetValue<string>("UsersPath")));
             }
 
-            var result = await _userManager.CreateAsync(user, password);
+            var result = await _userManager.CreateAsync(user, register.password);
 
             if (result.Succeeded)
             {
@@ -50,23 +53,30 @@ namespace clubescom.manager.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult> Login(string username, string password)
+        public async Task<ActionResult> Login([FromBody] UserCredentials credentials)
         {
-            var user = await _userManager.FindByNameAsync(username);
+            var user = await _userManager.FindByNameAsync(credentials.Username);
             if (user == null)
             {
                 return Unauthorized();
             }
 
+            Console.WriteLine("User: " + user.Name);
             var result =
-                await _signInManager.PasswordSignInAsync(user, password, isPersistent: false, lockoutOnFailure: false);
+                await _signInManager.PasswordSignInAsync(user, credentials.Password, isPersistent: false, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {
                 var userDto = new AppUserDto(user, _configuration);
                 return Ok(userDto);
             }
-
+            else
+            {
+                foreach (var error in result.ToString())
+                {
+                    Console.WriteLine($"Cannot login: {error}");
+                }
+            }
             return Unauthorized();
         }
     }
