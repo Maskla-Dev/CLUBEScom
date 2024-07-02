@@ -33,6 +33,10 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequiredUniqueChars = 0;
 });
 
+// Configure logging
+builder.Logging.ClearProviders().AddConsole().AddDebug().AddEventSourceLogger();
+
+
 var app = builder.Build();
 
 // Get a reference to the AppDbContext

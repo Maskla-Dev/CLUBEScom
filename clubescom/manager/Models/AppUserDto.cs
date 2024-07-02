@@ -12,6 +12,6 @@ public class AppUserDto
         Name = user.Name;
         Email = user.Email;
         PhoneNumber = user.PhoneNumber;
-        ProfileImagePath = Path.Combine("http://localhost:5274", "users/avatars", user.ProfileImagePath);
+        ProfileImagePath = "http://localhost:5274/" + "users/avatars/" + user.ProfileImagePath;
     }
 }

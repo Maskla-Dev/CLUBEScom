@@ -1,9 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using clubescom.manager.models;
-using System.IO;
-using System.Threading.Tasks;
 using clubescom.manager.Controllers.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +15,16 @@ namespace clubescom.manager.Controllers
         private readonly SignInManager<AppUser> _signInManager;
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AccountController> _logger;
 
         public AccountController(AppDbContext context, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager,
-            IConfiguration configuration)
+            IConfiguration configuration, ILogger<AccountController> logger)
         {
             _context = context;
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -55,6 +54,7 @@ namespace clubescom.manager.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] UserCredentials credentials)
         {
+            _logger.LogInformation("Login attempt: " + credentials.Username);
             var user = await _userManager.FindByNameAsync(credentials.Username);
             if (user == null)
             {
